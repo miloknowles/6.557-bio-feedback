@@ -10,13 +10,13 @@ import matplotlib.pyplot as plt
 
 
 def SSA():
-  T = 100
+  T = 10
 
-  A_tot = 40
-  B_tot = 40
+  A_tot = 100
+  B_tot = 100
   Ka = 0.1
-  Kd = 3.0
-  Volume = 1.0
+  Kd = 0.5
+  Volume = 2.0
 
   # Start out with A and B but not C.
   x = np.array([A_tot, B_tot, 0])
@@ -54,12 +54,21 @@ def SSA():
 
     t += dt
 
+  # Compute the deterministic concentrations for A, B, and C.
+  a = Ka / Volume
+  d = Kd / Volume
+  Qb = (a*A_tot/Volume + a*B_tot/Volume + d)
+  C_ss_conc = (Qb + math.sqrt(Qb**2 - 4*a*a*A_tot*B_tot/(Volume*Volume))) / 2
+  C_ss_mole = Volume * C_ss_conc
+  print("Expect {} molecules C".format(C_ss_mole))
+
   print("Simulated {} reactions".format(len(time_sequence)))
   state_sequence = np.concatenate(state_sequence, axis=0)
   time_sequence = np.array(time_sequence)
   plt.plot(time_sequence, state_sequence[:,0], label="A and B", linestyle="solid", color="blue")
   plt.plot(time_sequence, state_sequence[:,2], label="C", linestyle="solid", color="red")
-  plt.title("Stochastic Trajectories for A, B, and C")
+  # plt.plot(time_sequence, np.ones(len(time_sequence))*C_ss_mole, linestyle="dashed", color="black", label="Deterministic Steady State")
+  plt.title("Stochastic Trajectories for A, B, and C (Volume={})".format(Volume))
   plt.xlabel("Time (seconds)")
   plt.ylabel("Molecule Count")
   plt.legend()
