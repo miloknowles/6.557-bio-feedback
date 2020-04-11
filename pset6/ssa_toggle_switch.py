@@ -3,11 +3,11 @@ import math, random
 import matplotlib.pyplot as plt
 
 
-def SSA():
+def SSA(beta=0.9, gamma=0.1, show_plots=False):
   T = 100
 
-  D1_tot = 20
-  D2_tot = 20
+  D1_tot = 100
+  D2_tot = 100
 
   # Having some intial protein seems to help the trajectories "separate".
   X1_init = 1
@@ -17,9 +17,9 @@ def SSA():
   Kd_dimer = 3.0
   Ka_comp = 5.0
   Kd_comp = 1.0
-  beta = 0.9
-  gamma = 0.1
-  Volume = 10
+  # beta = 0.9
+  # gamma = 0.1
+  Volume = 1
 
   # State: [X1, X2, X1d, X2d, C1, C2]
   x = np.array([X1_init, X2_init, 0, 0, 0, 0])
@@ -98,7 +98,9 @@ def SSA():
     dt = (1 / Ki_bar) * math.log(1 / (1 - r))
 
     # Determine which reaction will happen next.
-    index_of_next_rxn = np.random.choice(len(rxn_propensities), p=rxn_propensities / rxn_propensities.sum())
+    p = rxn_propensities / rxn_propensities.sum()
+    # print(p)
+    index_of_next_rxn = np.random.choice(len(rxn_propensities), p=p)
 
     # Update the state based on the selected reaction.
     x += rxn_stochiometry[index_of_next_rxn]
@@ -109,15 +111,46 @@ def SSA():
   print("Simulated {} reactions".format(len(time_sequence)))
   state_sequence = np.concatenate(state_sequence, axis=0)
   time_sequence = np.array(time_sequence)
-  plt.plot(time_sequence, state_sequence[:,0], label="Protein A", linestyle="solid", color="blue")
-  plt.plot(time_sequence, state_sequence[:,1], label="Protein B", linestyle="solid", color="red")
-  # plt.plot(time_sequence, np.ones(len(state_sequence)) * Volume * beta / gamma, linestyle="dashed", color="black")
-  plt.title("Stochastic Trajectories Protein A and B (beta/gamma={})".format(beta / gamma))
-  plt.xlabel("Time (seconds)")
-  plt.ylabel("Molecule Count")
+
+  if show_plots:
+    plt.plot(time_sequence, state_sequence[:,0], label="Protein A", linestyle="solid", color="blue")
+    plt.plot(time_sequence, state_sequence[:,1], label="Protein B", linestyle="solid", color="red")
+    # plt.plot(time_sequence, np.ones(len(state_sequence)) * Volume * beta / gamma, linestyle="dashed", color="black")
+    plt.title("Stochastic Trajectories Protein A and B (beta/gamma={})".format(beta / gamma))
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("Molecule Count")
+    plt.legend()
+    plt.show()
+
+  return time_sequence, state_sequence
+
+
+def steady_state_distribution(beta, gamma):
+  num_trials = 10
+
+  steady_state = []
+
+  for k in range(num_trials):
+    print("Simulating SSA #{}".format(k+1))
+    time_sequence, state_sequence = SSA(beta=beta, gamma=gamma, show_plots=True)
+
+    # Only include the 2nd half of the states to throw away some "burn in" time.
+    burn_in_index = int(len(state_sequence) * 0.8)
+    steady_state.append(state_sequence[burn_in_index:])
+
+  steady_state = np.concatenate(steady_state, axis=0)
+  plt.hist(steady_state[:,0], bins=20, label="Protein A", density=True, facecolor="red", alpha=0.5)
+  plt.hist(steady_state[:,1], bins=20, label="Protein B", density=True, facecolor="blue", alpha=0.5)
+  plt.title("Steady State Distribution (beta/gamma={})".format(beta / gamma))
   plt.legend()
+  plt.xlabel("Molecule Count")
+  plt.ylabel("Probability")
   plt.show()
 
-
 if __name__ == "__main__":
-  SSA()
+  # SSA()
+  # steady_state_distribution(0.1, 0.1)
+  # steady_state_distribution(0.5, 0.1)
+  # steady_state_distribution(0.9, 0.1)
+  # steady_state_distribution(1.0, 0.1)
+  steady_state_distribution(0.9, 0.05)
