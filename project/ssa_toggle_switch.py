@@ -3,7 +3,7 @@ import math, random
 import matplotlib.pyplot as plt
 
 
-def SSA(beta=1.0, gamma=0.1, show_plots=False):
+def SSA(beta=1.0, gamma=0.1, show_plots=False, N=1e4):
   Ka_dimer = Kd_dimer = Ka_comp = Kd_comp = 1.0
   Volume = 1
 
@@ -13,15 +13,12 @@ def SSA(beta=1.0, gamma=0.1, show_plots=False):
   state_sequence = []
 
   t = 0
-  N = 1e2
   num_reactions = 0
   while num_reactions < N:
     time_sequence.append(t)
     state_sequence.append(np.expand_dims(x, 0).copy())
 
     N_X1, N_X2, N_X1d, N_X2d, N_C1, N_C2, N_D1, N_D2 = x
-    # N_D1 = D1_tot - N_C1
-    # N_D2 = D2_tot - N_C2
 
     # Forward/reverse dimerization reactions (symmetric for X1 and X2).
     a_x1_dimer_f = Ka_dimer * N_X1 * (N_X1 - 1) / (2 * Volume)
@@ -83,7 +80,6 @@ def SSA(beta=1.0, gamma=0.1, show_plots=False):
 
     # Determine which reaction will happen next.
     p = rxn_propensities / rxn_propensities.sum()
-    # print(p)
     index_of_next_rxn = np.random.choice(len(rxn_propensities), p=p)
 
     # Update the state based on the selected reaction.
@@ -100,8 +96,8 @@ def SSA(beta=1.0, gamma=0.1, show_plots=False):
   time_sequence = np.array(time_sequence)
 
   if show_plots:
-    plt.plot(time_sequence, state_sequence[:,0], label="Protein X1", linestyle="solid", color="blue")
-    plt.plot(time_sequence, state_sequence[:,1], label="Protein X2", linestyle="solid", color="red")
+    plt.plot(time_sequence, state_sequence[:,0], label="Protein X1", linestyle="solid", color="blue", alpha=0.5)
+    plt.plot(time_sequence, state_sequence[:,1], label="Protein X2", linestyle="solid", color="red", alpha=0.5)
     # plt.plot(time_sequence, np.ones(len(state_sequence)) * Volume * beta / gamma, linestyle="dashed", color="black")
     plt.title("Stochastic Trajectories of Proteins X1 and X2 (beta/gamma={})".format(beta / gamma))
     plt.xlabel("Time (seconds)")
@@ -112,32 +108,23 @@ def SSA(beta=1.0, gamma=0.1, show_plots=False):
   return time_sequence, state_sequence
 
 
-def steady_state_distribution(beta, gamma):
-  num_trials = 10
+def sample_pmf(beta=10, gamma=1, num_samples=1000, N=1e6):
+  time_sequence, state_sequence = SSA(beta=beta, gamma=gamma, show_plots=False, N=N)
 
-  steady_state = []
+  random_indices = np.random.choice(len(state_sequence), size=num_samples)
+  random_states = state_sequence[random_indices,:]
 
-  for k in range(num_trials):
-    print("Simulating SSA #{}".format(k+1))
-    time_sequence, state_sequence = SSA(beta=beta, gamma=gamma, show_plots=True)
-
-    # Only include the 2nd half of the states to throw away some "burn in" time.
-    burn_in_index = int(len(state_sequence) * 0.8)
-    steady_state.append(state_sequence[burn_in_index:])
-
-  steady_state = np.concatenate(steady_state, axis=0)
-  plt.hist(steady_state[:,0], bins=20, label="Protein A", density=True, facecolor="red", alpha=0.5)
-  plt.hist(steady_state[:,1], bins=20, label="Protein B", density=True, facecolor="blue", alpha=0.5)
-  plt.title("Steady State Distribution (beta/gamma={})".format(beta / gamma))
-  plt.legend()
-  plt.xlabel("Molecule Count")
-  plt.ylabel("Probability")
+  bins = [random_states[:,0].max() - random_states[:,0].min(), random_states[:,1].max() - random_states[:,1].min()]
+  h = plt.hist2d(random_states[:,0], random_states[:,1], density=True, label="Joint Distribution of X1 and X2", bins=bins)
+  plt.colorbar(h[3])
+  plt.title("Joint Distribution of X1 and X2 (beta/gamma={})".format(beta / gamma))
+  plt.xlabel("X1 Count")
+  plt.ylabel("X2 Count")
   plt.show()
 
+
 if __name__ == "__main__":
-  SSA(beta=1.0, gamma=1, show_plots=True)
-  # steady_state_distribution(0.1, 0.1)
-  # steady_state_distribution(0.5, 0.1)
-  # steady_state_distribution(0.9, 0.1)
-  # steady_state_distribution(1.0, 0.1)
-  # steady_state_distribution(0.9, 0.05)
+  # beta / gamma << 1 ==> unimodal stationary distribution
+  # beta / gamma >> 1 ==> bimodal stationary distribution
+  # SSA(beta=10, gamma=1, show_plots=True, N=1e5)
+  sample_pmf(beta=100, gamma=10, num_samples=10000, N=1e6)
