@@ -185,13 +185,15 @@ def sample_pmf(beta=10, gamma=1, gamma_P=1.0, beta_P=1.0,
 
 
 if __name__ == "__main__":
-  SSA_with_protease(beta=10.0, gamma=0.1, gamma_P=2.0, beta_P=0.5,
-             Kf_comp_repress=2.0, Kr_comp_repress=2.0,
-             Kf_comp_P=2.0, Kr_comp_P=1.0, show_plots=True, N=1e4)
-  # sample_pmf(beta=10, gamma=0.5, gamma_P=0.5, beta_P=1,
-  #            Kf_comp_repress=1.0, Kr_comp_repress=1.0,
-  #            Kf_comp_P=0.5, Kr_comp_P=1.0, num_samples=10000, N=1e5)
+  SSA_with_protease(beta=10.0, gamma=0.1, gamma_P=5.0, beta_P=0.3,
+             Kf_comp_repress=5.0, Kr_comp_repress=1.0,
+             Kf_comp_P=1.0, Kr_comp_P=1.0, show_plots=True, N=1e5)
 
-  # sample_pmf(beta=10.0, gamma=0.1, gamma_P=5.0, beta_P=1.0,
-  #         Kf_comp_repress=1.0, Kr_comp_repress=1.0,
-  #         Kf_comp_P=1.0, Kr_comp_P=1.0, num_samples=10000, N=1e5)
+  # Small amount of protease that binds strongly (has low Kd).
+  # Small Kd for the repressors (strong binding affinity).
+  # High beta/gamma ratio (including gamma + gamma_P)
+  # Effective gamma = (gamma + gamma_P*P/Kd)
+  # Kd = Kr_comp_P / Kf_comp_P
+  # sample_pmf(beta=10.0, gamma=0.1, gamma_P=1.0, beta_P=0.2,
+  #         Kf_comp_repress=5.0, Kr_comp_repress=1.0,
+  #         Kf_comp_P=5.0, Kr_comp_P=1.0, num_samples=10000, N=1e5)
