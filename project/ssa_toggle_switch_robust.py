@@ -5,10 +5,8 @@ import matplotlib.pyplot as plt
 
 def SSA_with_protease(beta=1.0, gamma=0.1, gamma_P=0.1, beta_P=1.0,
                       Kf_comp_repress=1.0, Kr_comp_repress=1.0,
-                      Kf_comp_P=1.0, Kr_comp_P=1.0, show_plots=False, N=1e4):
-  Kf_dimer = 1.0
-  Kr_dimer = 1.0
-
+                      Kf_comp_P=1.0, Kr_comp_P=1.0,
+                      Kf_dimer=1.0, Kr_dimer=1.0, show_plots=False, N=1e4):
   # Forward rate constant for RNAP binding to DNAp.
   Kf_RNAP_DNAp = Kf_comp_repress
   Kr_RNAP_DNAp = Kr_comp_repress
@@ -109,7 +107,7 @@ def SSA_with_protease(beta=1.0, gamma=0.1, gamma_P=0.1, beta_P=1.0,
       np.array([0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), # dilution 2
       np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 1, 0, 0]), # DpA forward
       np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0]), # DpA reverse
-      np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]), # Protease transcription
+      np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, -1, 0, 0]), # Protease transcription
       np.array([0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0]), # Protease dilution
       np.array([-1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0]), # Protease complex 1 forward
       np.array([0, -1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 1]), # Protease complex 2 forward
@@ -125,7 +123,6 @@ def SSA_with_protease(beta=1.0, gamma=0.1, gamma_P=0.1, beta_P=1.0,
     Ki_bar = rxn_propensities.sum()
 
     r = random.random()
-    # dt = (1 / Ki_bar) * math.log(1 / (1 - r))
     dt = -math.log(r) / Ki_bar
 
     # Determine which reaction will happen next.
@@ -151,7 +148,7 @@ def SSA_with_protease(beta=1.0, gamma=0.1, gamma_P=0.1, beta_P=1.0,
     plt.plot(time_sequence, state_sequence[:,8], label="Protease P", linestyle="dashed", color="green", alpha=0.5)
     # plt.plot(time_sequence, state_sequence[:,2], label="X1 dimer", linestyle="dashed", color="lightblue", alpha=0.5)
     # plt.plot(time_sequence, state_sequence[:,3], label="X2 dimer", linestyle="dashed", color="lightpink", alpha=0.5)
-    plt.title("Stochastic Trajectories of Proteins X1 and X2 (beta/gamma={})".format(beta / gamma))
+    plt.title("Stochastic Trajectories of Proteins X1 and X2 (K={})".format(Kr_comp_repress / Kr_comp_repress))
     plt.xlabel("Time (seconds)")
     plt.ylabel("Molecule Count")
     plt.legend()
@@ -178,22 +175,25 @@ def sample_pmf(beta=10, gamma=1, gamma_P=1.0, beta_P=1.0,
   bins = [random_states[:,0].max() - random_states[:,0].min(), random_states[:,1].max() - random_states[:,1].min()]
   h = plt.hist2d(random_states[:,0], random_states[:,1], density=True, label="Joint Distribution of X1 and X2", bins=bins)
   plt.colorbar(h[3])
-  plt.title("Joint Distribution of X1 and X2 (beta/gamma={})".format(beta / gamma))
+  plt.title("Joint Distribution of X1 and X2 (K = {})".format(Kr_comp_repress / Kf_comp_repress))
   plt.xlabel("X1 Count")
   plt.ylabel("X2 Count")
   plt.show()
 
 
 if __name__ == "__main__":
-  SSA_with_protease(beta=10.0, gamma=0.1, gamma_P=5.0, beta_P=0.3,
-             Kf_comp_repress=5.0, Kr_comp_repress=1.0,
-             Kf_comp_P=1.0, Kr_comp_P=1.0, show_plots=True, N=1e5)
+  # Kf_comp_repress=5
+  # Kr_comp_repress=1
+
+  SSA_with_protease(beta=10.0, gamma=0.1, gamma_P=5.0, beta_P=0.8,
+             Kf_comp_repress=0.2, Kr_comp_repress=1.0,
+             Kf_comp_P=1.0, Kr_comp_P=1.0, show_plots=True, N=1e4)
 
   # Small amount of protease that binds strongly (has low Kd).
   # Small Kd for the repressors (strong binding affinity).
   # High beta/gamma ratio (including gamma + gamma_P)
   # Effective gamma = (gamma + gamma_P*P/Kd)
   # Kd = Kr_comp_P / Kf_comp_P
-  # sample_pmf(beta=10.0, gamma=0.1, gamma_P=1.0, beta_P=0.2,
-  #         Kf_comp_repress=5.0, Kr_comp_repress=1.0,
-  #         Kf_comp_P=5.0, Kr_comp_P=1.0, num_samples=10000, N=1e5)
+  # sample_pmf(beta=10.0, gamma=0.1, gamma_P=5.0, beta_P=0.3,
+  #         Kf_comp_repress=1.0, Kr_comp_repress=1.0,
+  #         Kf_comp_P=1.0, Kr_comp_P=1.0, num_samples=10000, N=1e5)
