@@ -1,57 +1,35 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def plot_nullclines_original(Kd_repress):
+  DNA_tot_rep = 1.0   # Total concentration of DNA for X1 and X2 (includes free DNA and complexes).
+  RNAP = 1.0          # (nM) Concentration of RNA polymerase.
 
-def plot_nullclines_original(K=6):
-  beta = 10
-  gamma = 1
+  alpha_X = 1.0       # (nM / min) Transription rate of proteins X1 and X2.
 
-  x1 = np.linspace(0.0, beta/gamma + 1, 1000)
-  x2 = np.linspace(0.0, beta/gamma + 1, 1000)
+  gamma = 0.1         # Dilution rate.
 
-  nullcline_x1_dot = (beta / gamma) / (1 + (x2 / K)**2)
-  nullcline_x2_dot = (beta / gamma) / (1 + (x1 / K)**2)
+  Kd_dimer = 1.0                  # (nM) Dimerization reaction for X1 and X2.
+  Kd_rnap = 1.0                   # (nM) Binding of the RNAP to promoter for X1 and X2.
 
-  plt.plot(nullcline_x1_dot, x2, color="red", label="dX1/dt nullcline", linestyle="dashed")
-  plt.plot(x1, nullcline_x2_dot, color="blue", label="dX2/dt nullcline", linestyle="solid")
-  plt.title("Nullclines for dX1/dt and dX2/dt (beta/gamma={}, K={})".format(beta/gamma, K))
+  # Production function of X1 and X2.
+  K = (Kd_dimer * Kd_repress * (1 + RNAP/Kd_rnap))**0.5
+  beta = alpha_X * (DNA_tot_rep * (RNAP / Kd_rnap)) / (1 + RNAP/Kd_rnap)
+
+  x1 = np.linspace(0.0, 1.1 * beta/gamma, 1000)
+  x2 = np.linspace(0.0, 1.1 * beta/gamma, 1000)
+
+  nullcline_x1_dot_orig = (beta / gamma) / (1 + (x2 / K)**2)
+  nullcline_x2_dot_orig = (beta / gamma) / (1 + (x1 / K)**2)
+
+  # Plot the original system nullclines.
+  plt.plot(nullcline_x1_dot_orig, x2, color="red", label="dX1/dt nullcline", linestyle="dashed")
+  plt.plot(x1, nullcline_x2_dot_orig, color="blue", label="dX2/dt nullcline", linestyle="solid")
+  plt.title("Nullclines: Toggle Switch (K={})".format(Kd_repress))
   plt.legend()
   plt.xlabel("[X1]")
   plt.ylabel("[X2]")
   plt.show()
-
-
-# def plot_nullclines_protease(K):
-#   beta = 10
-#   gamma = 0.1
-
-#   P = 1 # Amount of the protease.
-#   alpha_B = 1.0 # Production rate of sspB
-#   DNA_tot = 1.0 # Concentration of DNA for sspB.
-#   RNAP = 1.0 # Concentration of RNA polymerase.
-#   Kd_RNAP_sspB = K # Dissociation constant for RNAP binding to the sspB promoter.
-#   B = (RNAP * DNA_tot * alpha_B / gamma) / (RNAP + Kd_RNAP_sspB) # Amount of sspB
-
-#   gamma_p = 0.2 # Degradation rate of the protease.
-#   Kd_sspB_X1_or_X2 = 1.0 # Dissociation constant for the sspB with either X1 or X2.
-
-#   # gamma_protease = k_f*(alpha / gamma)*P / (K + P)
-#   # The protease effectively functions as an extra "gamma" term that degrades X1 and X2.
-#   gamma_protease = (P * gamma_p * B) / Kd_sspB_X1_or_X2
-
-#   x1 = np.linspace(0.0, beta/(gamma + gamma_protease) + 1, 1000)
-#   x2 = np.linspace(0.0, beta/(gamma + gamma_protease) + 1, 1000)
-
-#   nullcline_x1_dot = (beta / (gamma + gamma_protease)) / (1 + (x2 / K)**2)
-#   nullcline_x2_dot = (beta / (gamma + gamma_protease)) / (1 + (x1 / K)**2)
-
-#   plt.plot(nullcline_x1_dot, x2, color="red", label="dX1/dt nullcline", linestyle="dashed")
-#   plt.plot(x1, nullcline_x2_dot, color="blue", label="dX2/dt nullcline", linestyle="solid")
-#   plt.title("Nullclines (beta/gamma={:.02f}, K={})".format(beta/(gamma + gamma_protease), K))
-#   plt.legend()
-#   plt.xlabel("[X1]")
-#   plt.ylabel("[X2]")
-#   plt.show()
 
 
 def plot_nullclines_protease(Kd_repress):
@@ -99,32 +77,35 @@ def plot_nullclines_protease(Kd_repress):
   nullcline_x1_dot = (beta / gamma_total) / (1 + (x2 / K)**2)
   nullcline_x2_dot = (beta / gamma_total) / (1 + (x1 / K)**2)
 
+  nullcline_x1_dot_orig = (beta / gamma) / (1 + (x2 / K)**2)
+  nullcline_x2_dot_orig = (beta / gamma) / (1 + (x1 / K)**2)
+
+  # Plot the IFFL system nullclines.
+  plt.clf()
   plt.plot(nullcline_x1_dot, x2, color="red", label="dX1/dt nullcline", linestyle="dashed")
   plt.plot(x1, nullcline_x2_dot, color="blue", label="dX2/dt nullcline", linestyle="solid")
-  plt.title("Nullclines (beta/gamma={:.02f}, K={})".format(beta/gamma_total, K))
+  plt.title("Nullclines: Toggle Switch + IFFL (Kd={})".format(Kd_repress))
   plt.legend()
   plt.xlabel("[X1]")
   plt.ylabel("[X2]")
+  plt.savefig("./output/nullclines_{}.png".format(Kd_repress))
   plt.show()
+
+  # Plot the original system nullclines.
+  # plt.plot(nullcline_x1_dot_orig, x2, color="red", label="dX1/dt nullcline", linestyle="dashed")
+  # plt.plot(x1, nullcline_x2_dot_orig, color="blue", label="dX2/dt nullcline", linestyle="solid")
+  # plt.title("Nullclines: Toggle Switch (K={})".format(K))
+  # plt.legend()
+  # plt.xlabel("[X1]")
+  # plt.ylabel("[X2]")
+  # plt.show()
 
 
 if __name__ == "__main__":
-  # plot_nullclines_original()
+  # Kd_repress_values = [0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0]
+  # for Kd_repress in Kd_repress_values:
+  plot_nullclines_protease(Kd_repress=512.0)
 
-  plot_nullclines_protease(Kd_repress=0.25)
-  plot_nullclines_protease(Kd_repress=0.5)
-  plot_nullclines_protease(Kd_repress=1.0)
-  plot_nullclines_protease(Kd_repress=2.0)
-  plot_nullclines_protease(Kd_repress=4.0)
-  plot_nullclines_protease(Kd_repress=8.0)
-  plot_nullclines_protease(Kd_repress=16.0)
-  plot_nullclines_protease(Kd_repress=32.0)
-  plot_nullclines_protease(Kd_repress=64.0)
-
-  # plot_nullclines_protease(K=2)
-  # plot_nullclines_protease(K=4)
-  # plot_nullclines_protease(K=8)
-  # plot_nullclines_protease(K=16)
-  # plot_nullclines_protease(K=32)
-
-  # plot_nullclines_additional_repressor(K=6)
+  # plot_nullclines_original(Kd_repress=1.0)
+  # plot_nullclines_original(Kd_repress=2.0)
+  # plot_nullclines_original(Kd_repress=4.0)

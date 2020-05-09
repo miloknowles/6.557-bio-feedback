@@ -3,13 +3,16 @@ import math, random
 import matplotlib.pyplot as plt
 
 
-def SSA_with_protease(beta=1.0, gamma=0.1, gamma_P=0.1, beta_P=1.0,
+def SSA_with_protease(alpha_X=1.0, gamma=0.1,
+                      gamma_P=0.1, alpha_P=1.0,
                       Kf_comp_repress=1.0, Kr_comp_repress=1.0,
                       Kf_comp_P=1.0, Kr_comp_P=1.0,
-                      Kf_dimer=1.0, Kr_dimer=1.0, show_plots=False, N=1e4):
+                      Kf_dimer=1.0, Kr_dimer=1.0,
+                      Kf_RNAP_DNAp=1.0, Kr_RNAP_DNAp=1.0,
+                      show_plots=False, N=1e4):
   # Forward rate constant for RNAP binding to DNAp.
-  Kf_RNAP_DNAp = Kf_comp_repress
-  Kr_RNAP_DNAp = Kr_comp_repress
+  # Kf_RNAP_DNAp = Kf_comp_repress
+  # Kr_RNAP_DNAp = Kr_comp_repress
 
   Volume = 1
 
@@ -40,8 +43,8 @@ def SSA_with_protease(beta=1.0, gamma=0.1, gamma_P=0.1, beta_P=1.0,
     a_C2_r = Kr_comp_repress * N_C2
 
     # Transcription of proteins X1 and X2.
-    a_tx1 = beta * N_D1
-    a_tx2 = beta * N_D2
+    a_tx1 = alpha_X * N_D1
+    a_tx2 = alpha_X * N_D2
 
     # Dilution of proteins X1 and X2.
     a_dilution1 = gamma * N_X1
@@ -52,7 +55,7 @@ def SSA_with_protease(beta=1.0, gamma=0.1, gamma_P=0.1, beta_P=1.0,
     a_DpA_r = Kr_RNAP_DNAp * N_DpA  # DNApA ==> RNAP + DNAp (activated DNA releases RNAP).
 
     # Transcription and dilution of the protease P.
-    a_txP = beta_P * N_DpA      # DNApA ==> P + DNApA (one step TX and TL).
+    a_txP = alpha_P * N_DpA      # DNApA ==> P + DNApA (one step TX and TL).
     a_dilutionP = gamma * N_P   # P ==> 0 (dilution).
 
     # Forward/reverse binding of protease P to X1 and X2.
@@ -157,16 +160,21 @@ def SSA_with_protease(beta=1.0, gamma=0.1, gamma_P=0.1, beta_P=1.0,
   return time_sequence, state_sequence
 
 
-def sample_pmf(beta=10, gamma=1, gamma_P=1.0, beta_P=1.0,
+def sample_pmf(alpha_X=10, gamma=1, gamma_P=1.0, alpha_P=1.0,
                Kf_comp_repress=1.0, Kr_comp_repress=1.0,
-               Kf_comp_P=1.0, Kr_comp_P=1.0, num_samples=1000, N=1e6):
+               Kf_comp_P=1.0, Kr_comp_P=1.0,
+               Kf_RNAP_DNAp=1.0, Kr_RNAP_DNAp=1.0,
+               num_samples=1000, N=1e6):
   """
   Compute the steady state PMF by sampling from the trajectory at random points in time.
   """
+  plt.clf()
+
   _, state_sequence = SSA_with_protease(
-    beta=beta, gamma=gamma, gamma_P=gamma_P, beta_P=beta_P,
+    alpha_X=alpha_X, gamma=gamma, gamma_P=gamma_P, alpha_P=alpha_P,
     Kf_comp_repress=Kf_comp_repress, Kr_comp_repress=Kr_comp_repress,
     Kf_comp_P=Kf_comp_P, Kr_comp_P=Kr_comp_P,
+    Kf_RNAP_DNAp=Kf_RNAP_DNAp, Kr_RNAP_DNAp=Kr_RNAP_DNAp,
     show_plots=False, N=N)
 
   random_indices = np.random.choice(len(state_sequence), size=num_samples)
@@ -178,22 +186,24 @@ def sample_pmf(beta=10, gamma=1, gamma_P=1.0, beta_P=1.0,
   plt.title("Joint Distribution of X1 and X2 (K = {})".format(Kr_comp_repress / Kf_comp_repress))
   plt.xlabel("X1 Count")
   plt.ylabel("X2 Count")
-  plt.show()
+  plt.savefig("./output/pmf_{}.png".format(Kr_comp_repress / Kf_comp_repress))
+  # plt.show()
 
 
 if __name__ == "__main__":
-  # Kf_comp_repress=5
-  # Kr_comp_repress=1
+  for increase_factor in [1, 2, 4, 8, 16, 32, 64]:
+    print("Trying increase factor {}".format(increase_factor))
+    # SSA_with_protease(
+    #     alpha_X=10.0, gamma=0.05, gamma_P=1.0, alpha_P=5.0,
+    #     Kf_comp_repress=2.0, Kr_comp_repress=increase_factor*1.0,
+    #     Kf_dimer=1.0, Kr_dimer=1.0,
+    #     Kf_comp_P=1.0, Kr_comp_P=1.0,
+    #     Kf_RNAP_DNAp=0.2, Kr_RNAP_DNAp=increase_factor*1.0,
+    #     show_plots=True, N=4e4)
 
-  SSA_with_protease(beta=10.0, gamma=0.1, gamma_P=5.0, beta_P=0.8,
-             Kf_comp_repress=0.2, Kr_comp_repress=1.0,
-             Kf_comp_P=1.0, Kr_comp_P=1.0, show_plots=True, N=1e4)
-
-  # Small amount of protease that binds strongly (has low Kd).
-  # Small Kd for the repressors (strong binding affinity).
-  # High beta/gamma ratio (including gamma + gamma_P)
-  # Effective gamma = (gamma + gamma_P*P/Kd)
-  # Kd = Kr_comp_P / Kf_comp_P
-  # sample_pmf(beta=10.0, gamma=0.1, gamma_P=5.0, beta_P=0.3,
-  #         Kf_comp_repress=1.0, Kr_comp_repress=1.0,
-  #         Kf_comp_P=1.0, Kr_comp_P=1.0, num_samples=10000, N=1e5)
+    sample_pmf(
+        alpha_X=10.0, gamma=0.05, gamma_P=1.0, alpha_P=5.0,
+        Kf_comp_repress=2.0, Kr_comp_repress=increase_factor*1.0,
+        Kf_comp_P=1.0, Kr_comp_P=1.0,
+        Kf_RNAP_DNAp=0.2, Kr_RNAP_DNAp=increase_factor*1.0,
+        num_samples=100000, N=1e6)
