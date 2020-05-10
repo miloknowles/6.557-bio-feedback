@@ -1,15 +1,37 @@
 import numpy as np
 import math, random
+from copy import deepcopy
 import matplotlib.pyplot as plt
 
 
-def SSA_with_protease(alpha_X=1.0, gamma=0.1,
-                      gamma_P=0.1, alpha_P=1.0,
-                      Kf_comp_repress=1.0, Kr_comp_repress=1.0,
-                      Kf_comp_P=1.0, Kr_comp_P=1.0,
-                      Kf_dimer=1.0, Kr_dimer=1.0,
-                      Kf_RNAP_DNAp=1.0, Kr_RNAP_DNAp=1.0,
-                      show_plots=False, N=1e4):
+class ReactionConstants(object):
+  def __init__(self, Kd_repress=1.0):
+    self.alpha_X = 2.0
+    self.alpha_P = 2.0
+
+    self.gamma = 0.05
+    self.gamma_P = 0.2
+
+    Kd_dimer = 0.1
+    self.Kf_dimer = 0.5
+    self.Kr_dimer = Kd_dimer*self.Kf_dimer
+
+    Kd_prot = 2.0
+    self.Kf_prot = 0.5
+    self.Kr_prot = Kd_prot*self.Kf_prot
+
+    self.Kf_repress = 0.1
+    self.Kr_repress = Kd_repress*self.Kf_repress
+
+    Kd_rnap_dsrA = 5*Kd_repress
+    self.Kf_rnap_dsrA = 0.5
+    self.Kr_rnap_dsrA = Kd_rnap_dsrA*self.Kf_rnap_dsrA
+
+  def copy(self):
+    return deepcopy(self)
+
+
+def SSA_with_protease(const, show_plots=False, N=1e4):
   Volume = 1
 
   # State: [X1, X2, X1d, X2d, C1, C2, D1, D2, P, Dp, DpA, Cp1, Cp2]
@@ -27,42 +49,42 @@ def SSA_with_protease(alpha_X=1.0, gamma=0.1,
     N_X1, N_X2, N_X1d, N_X2d, N_C1, N_C2, N_D1, N_D2, N_P, N_Dp, N_DpA, N_Cp1, N_Cp2 = x
 
     # Forward/reverse dimerization reactions (symmetric for X1 and X2).
-    a_x1_dimer_f = Kf_dimer * N_X1 * (N_X1 - 1) / (2 * Volume)
-    a_x2_dimer_f = Kf_dimer * N_X2 * (N_X2 - 1) / (2 * Volume)
-    a_x1_dimer_r = Kr_dimer * N_X1d
-    a_x2_dimer_r = Kr_dimer * N_X2d
+    a_x1_dimer_f = const.Kf_dimer * N_X1 * (N_X1 - 1) / (2 * Volume)
+    a_x2_dimer_f = const.Kf_dimer * N_X2 * (N_X2 - 1) / (2 * Volume)
+    a_x1_dimer_r = const.Kr_dimer * N_X1d
+    a_x2_dimer_r = const.Kr_dimer * N_X2d
 
     # Forward/reverse complex reactions (X1 and X2 repress each other by sequestering DNA).
-    a_C1_f = Kf_comp_repress * N_D1 * N_X2d / Volume
-    a_C2_f = Kf_comp_repress * N_D2 * N_X1d / Volume
-    a_C1_r = Kr_comp_repress * N_C1
-    a_C2_r = Kr_comp_repress * N_C2
+    a_C1_f = const.Kf_repress * N_D1 * N_X2d / Volume
+    a_C2_f = const.Kf_repress * N_D2 * N_X1d / Volume
+    a_C1_r = const.Kr_repress * N_C1
+    a_C2_r = const.Kr_repress * N_C2
 
     # Transcription of proteins X1 and X2.
-    a_tx1 = alpha_X * N_D1
-    a_tx2 = alpha_X * N_D2
+    a_tx1 = const.alpha_X * N_D1
+    a_tx2 = const.alpha_X * N_D2
 
     # Dilution of proteins X1 and X2.
-    a_dilution1 = gamma * N_X1
-    a_dilution2 = gamma * N_X2
+    a_dilution1 = const.gamma * N_X1
+    a_dilution2 = const.gamma * N_X2
 
     # Forward/reverse binding of RNAP to DNA for the protease P.
-    a_DpA_f = Kf_RNAP_DNAp * N_Dp   # RNAP + DNAp ==> DNApA (activated DNA)
-    a_DpA_r = Kr_RNAP_DNAp * N_DpA  # DNApA ==> RNAP + DNAp (activated DNA releases RNAP).
+    a_DpA_f = const.Kf_rnap_dsrA * N_Dp   # RNAP + DNAp ==> DNApA (activated DNA)
+    a_DpA_r = const.Kr_rnap_dsrA * N_DpA  # DNApA ==> RNAP + DNAp (activated DNA releases RNAP).
 
     # Transcription and dilution of the protease P.
-    a_txP = alpha_P * N_DpA         # DNApA ==> P + DNApA (one step TX and TL).
-    a_dilutionP = gamma * N_P       # P ==> 0 (dilution).
+    a_txP = const.alpha_P * N_DpA         # DNApA ==> P + DNApA (one step TX and TL).
+    a_dilutionP = const.gamma * N_P       # P ==> 0 (dilution).
 
     # Forward/reverse binding of protease P to X1 and X2.
-    a_Cp1_f = Kf_comp_P * N_X1 * N_P / Volume
-    a_Cp2_f = Kf_comp_P * N_X2 * N_P / Volume
-    a_Cp1_r = Kr_comp_P * N_Cp1
-    a_Cp2_r = Kr_comp_P * N_Cp2
+    a_Cp1_f = const.Kf_prot * N_X1 * N_P / Volume
+    a_Cp2_f = const.Kf_prot * N_X2 * N_P / Volume
+    a_Cp1_r = const.Kr_prot * N_Cp1
+    a_Cp2_r = const.Kr_prot * N_Cp2
 
     # Degradation of X1 and X2 from the compex formed with protease P.
-    a_degrade1_f = gamma_P * N_Cp1
-    a_degrade2_f = gamma_P * N_Cp2
+    a_degrade1_f = const.gamma_P * N_Cp1
+    a_degrade2_f = const.gamma_P * N_Cp2
 
     rxn_propensities = np.array([
       a_x1_dimer_f,
@@ -147,7 +169,7 @@ def SSA_with_protease(alpha_X=1.0, gamma=0.1,
     plt.plot(time_sequence, state_sequence[:,8], label="Protease P", linestyle="dashed", color="green", alpha=0.5)
     # plt.plot(time_sequence, state_sequence[:,2], label="X1 dimer", linestyle="dashed", color="lightblue", alpha=0.5)
     # plt.plot(time_sequence, state_sequence[:,3], label="X2 dimer", linestyle="dashed", color="lightpink", alpha=0.5)
-    plt.title("Stochastic Trajectories of Proteins X1 and X2 (K={})".format(Kr_comp_repress / Kr_comp_repress))
+    plt.title("Stochastic Trajectories of Proteins X1 and X2 (Kd={:.03f})".format(const.Kr_repress / const.Kf_repress))
     plt.xlabel("Time (seconds)")
     plt.ylabel("Molecule Count")
     plt.legend()
@@ -156,50 +178,38 @@ def SSA_with_protease(alpha_X=1.0, gamma=0.1,
   return time_sequence, state_sequence
 
 
-def sample_pmf(alpha_X=10, gamma=1, gamma_P=1.0, alpha_P=1.0,
-               Kf_comp_repress=1.0, Kr_comp_repress=1.0,
-               Kf_comp_P=1.0, Kr_comp_P=1.0,
-               Kf_RNAP_DNAp=1.0, Kr_RNAP_DNAp=1.0,
-               num_samples=1000, N=1e6):
+def sample_pmf(const, num_reactions=1e5, num_trials=10, num_samples=10000):
   """
   Compute the steady state PMF by sampling from the trajectory at random points in time.
   """
-  _, state_sequence = SSA_with_protease(
-    alpha_X=alpha_X, gamma=gamma, gamma_P=gamma_P, alpha_P=alpha_P,
-    Kf_comp_repress=Kf_comp_repress, Kr_comp_repress=Kr_comp_repress,
-    Kf_comp_P=Kf_comp_P, Kr_comp_P=Kr_comp_P,
-    Kf_RNAP_DNAp=Kf_RNAP_DNAp, Kr_RNAP_DNAp=Kr_RNAP_DNAp,
-    show_plots=False, N=N)
+  state_sequence = []
+  for i in range(num_trials):
+    _, state_sequence_i = SSA_with_protease(const, show_plots=False, N=num_reactions)
+    state_sequence.append(state_sequence_i[len(state_sequence_i)//5:,:])
+
+  state_sequence = np.concatenate(state_sequence, axis=0)
+
+  print("Finished sampling, generating histogram...")
 
   random_indices = np.random.choice(len(state_sequence), size=num_samples)
   random_states = state_sequence[random_indices,:]
 
+  Kd = const.Kr_repress / const.Kf_repress
+
   bins = [random_states[:,0].max() - random_states[:,0].min(), random_states[:,1].max() - random_states[:,1].min()]
   h = plt.hist2d(random_states[:,0], random_states[:,1], density=True, label="Joint Distribution of X1 and X2", bins=bins)
   plt.colorbar(h[3])
-  plt.title("Joint Distribution of X1 and X2 (K = {})".format(Kr_comp_repress / Kf_comp_repress))
+  plt.title("Joint Distribution of X1 and X2 (K = {:.03f})".format(Kd))
   plt.xlabel("X1 Count")
   plt.ylabel("X2 Count")
-  plt.savefig("./output/pmf_{}.png".format(Kr_comp_repress / Kf_comp_repress))
-  # plt.show()
+  plt.savefig("./output/pmf_{}.png".format(Kd))
+  plt.show()
 
 
 if __name__ == "__main__":
-  # for increase_factor in [0.125, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64]:
-  # print("Trying increase factor {}".format(increase_factor))
-    # SSA_with_protease(
-    #     alpha_X=10.0, gamma=0.05, gamma_P=1.0, alpha_P=5.0,
-    #     Kf_comp_repress=2.0, Kr_comp_repress=increase_factor*1.0,
-    #     Kf_dimer=1.0, Kr_dimer=1.0,
-    #     Kf_comp_P=1.0, Kr_comp_P=1.0,
-    #     Kf_RNAP_DNAp=0.2, Kr_RNAP_DNAp=increase_factor*1.0,
-    #     show_plots=True, N=4e4)
-  increase_factor = 0.125
-  sample_pmf(
-      alpha_X=10.0, gamma=0.05, gamma_P=1.0, alpha_P=5.0,
-      Kf_comp_repress=2.0, Kr_comp_repress=increase_factor*1.0,
-      Kf_comp_P=1.0, Kr_comp_P=1.0,
-      Kf_RNAP_DNAp=0.2, Kr_RNAP_DNAp=increase_factor*1.0,
-      num_samples=100000, N=1e6)
+  for Kd_repress in [0.125, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64]:
+    const = ReactionConstants(Kd_repress=Kd_repress)
+    # SSA_with_protease(const, show_plots=True, N=5e4)
+    sample_pmf(const, num_reactions=5e4, num_trials=50, num_samples=20000)
 
   plt.clf()
