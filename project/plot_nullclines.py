@@ -77,8 +77,8 @@ def plot_nullclines_protease(Kd_repress):
   nullcline_x1_dot = (beta / gamma_total) / (1 + (x2 / K)**2)
   nullcline_x2_dot = (beta / gamma_total) / (1 + (x1 / K)**2)
 
-  nullcline_x1_dot_orig = (beta / gamma) / (1 + (x2 / K)**2)
-  nullcline_x2_dot_orig = (beta / gamma) / (1 + (x1 / K)**2)
+  # nullcline_x1_dot_orig = (beta / gamma) / (1 + (x2 / K)**2)
+  # nullcline_x2_dot_orig = (beta / gamma) / (1 + (x1 / K)**2)
 
   # Plot the IFFL system nullclines.
   plt.clf()
