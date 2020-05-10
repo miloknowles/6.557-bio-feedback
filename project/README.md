@@ -1,4 +1,4 @@
-# Engineering a Temperature-Robust Toggle Switch
+# Feedforward control for a temperature-robust toggle switch
 
 Class project for MIT 6.557, Biomolecular Feedback Systems (Spring 2020).
 
